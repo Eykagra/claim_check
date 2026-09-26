@@ -1,0 +1,19 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Validate extension syntax
+        run: |
+          for file in apps/extension/src/background/*.js apps/extension/src/content/*.js apps/extension/src/offscreen/*.js apps/extension/src/popup/*.js; do node --check "$file"; done

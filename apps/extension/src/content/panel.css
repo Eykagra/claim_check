@@ -1,0 +1,27 @@
+#claimcheck-root { position: fixed; z-index: 2147483647; top: 72px; right: 20px; width: 360px; max-height: calc(100vh - 96px); overflow: auto; color: #2c2c2b; background: #fff; border: 1px solid #e6e5e3; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.16); font: 14px/1.4 Arial,sans-serif; }
+#claimcheck-root * { box-sizing: border-box; }
+#claimcheck-root header { position: sticky; top: 0; z-index: 1; display:flex; justify-content:space-between; gap:12px; padding:16px; background:#fff; border-bottom:1px solid #e6e5e3; }
+#claimcheck-root header strong { display:block; font-size:17px; }
+#claimcheck-root button { border:0; border-radius:7px; padding:8px 10px; color:#fff; background:#2783de; font-weight:700; cursor:pointer; }
+#claimcheck-root button:disabled { opacity:.55; cursor:wait; }
+#claimcheck-root #cc-close { width:32px; height:32px; padding:0; color:#7d7a75; background:#f0efed; font-size:20px; }
+#claimcheck-root section { padding:14px 16px; border-bottom:1px solid #f0efed; }
+.cc-eyebrow,.cc-label { color:#2783de; font-size:10px; font-weight:800; letter-spacing:1px; }
+.cc-label { margin-bottom:8px; }
+.cc-transcript { max-height:120px; overflow:auto; color:#45433f; }
+.cc-interim,.cc-empty { margin-top:6px; color:#8b8781; font-style:italic; }
+.cc-claim { padding:10px; margin:8px 0; border:1px solid #d8eaf8; border-radius:8px; background:#fbfdff; }
+.cc-claim p { margin:0 0 8px; font-weight:600; }
+.cc-quote { margin:0 0 10px; padding-left:9px; border-left:2px solid #d8eaf8; color:#696661; font-size:12px; }
+.cc-claim div { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.cc-claim span { color:#7d7a75; font-size:11px; }
+.cc-verdict { display:inline-block; padding:5px 8px; border-radius:6px; color:#1767ae; background:#e5f2fc; font-weight:800; }
+.cc-verdict.supported { color:#337552; background:#e8f1ec; }
+.cc-verdict.contradicted { color:#a33b32; background:#fce9e7; }
+.cc-summary { color:#45433f; }
+.cc-failures { display:grid; gap:4px; margin:8px 0; color:#a33b32; font-size:11px; }
+.cc-citations { display:grid; gap:6px; margin:10px 0; }
+.cc-citations a { color:#1767ae; text-decoration:none; }
+#claimcheck-root footer { position:sticky; bottom:0; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; color:#696661; background:#f9f8f7; border-top:1px solid #e6e5e3; font-size:11px; }
+#claimcheck-root #cc-status { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#claimcheck-root #cc-export { flex:0 0 auto; padding:7px 9px; font-size:11px; }

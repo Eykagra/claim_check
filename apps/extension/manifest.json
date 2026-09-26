@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "ClaimCheck",
+  "version": "0.1.0",
+  "description": "Plan, research, and critique spoken claims with an auditable multi-agent workflow.",
+  "permissions": ["activeTab", "storage", "tabCapture", "offscreen"],
+  "host_permissions": ["https://api.deepgram.com/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "ClaimCheck"
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/content/panel.js"],
+      "css": ["src/content/panel.css"]
+    }
+  ]
+}
