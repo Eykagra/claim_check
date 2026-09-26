@@ -1,6 +1,6 @@
 # ClaimCheck — Multi-Agent Hackathon Plan
 
-> **Implementation status — 2026-09-26:** The first working vertical slice is complete: Manifest V3 extension, temporary Deepgram tokens, streaming transcript boundaries, four agents, You.com evidence search, critic-driven replan, bounded runtime, JSONL trace, approval records, and automated recovery tests. See `README.md` for setup and the remaining next steps.
+> **Implementation status — 2026-09-26:** The first working vertical slice is complete: Manifest V3 extension, temporary Deepgram tokens, streaming transcript boundaries, three model-backed agents plus a deterministic research executor, You.com evidence search, critic-driven replan, bounded runtime, JSONL trace, approval records, and automated recovery tests. See `README.md` for setup and the remaining next steps.
 
 ## 1. Goal
 
@@ -16,7 +16,7 @@ Build a Chrome extension and orchestration service that turns a user-selected sp
 - User explicitly starts/stops active-tab audio capture.
 - Deepgram streaming transcription with timestamps, confidence, and utterance boundaries.
 - Check-worthy claim suggestions; user selects one claim to check.
-- Four justified agents: Claim Extractor, Planner, Researcher, Evidence Critic.
+- Three justified model-backed agents: Claim Extractor, Planner, Evidence Critic. Research is a deterministic executor of the planner's query and source policy (see ADR 0002).
 - You.com Search API plus direct retrieval of selected source pages.
 - Shared evidence board containing claims, tasks, evidence, gaps, decisions, and provenance.
 - One critic rejection can cause a revised plan and another evidence search.

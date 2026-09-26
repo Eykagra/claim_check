@@ -1,4 +1,4 @@
-import type { AgentRole, ToolResult } from "../../../../packages/contracts/src/index.js";
+import type { ToolResult, TraceActor } from "../../../../packages/contracts/src/index.js";
 import { BudgetController } from "../policies/budget.js";
 import { Tracer } from "../telemetry/tracer.js";
 import { sha256, stableJson } from "../lib/hash.js";
@@ -7,7 +7,7 @@ export class ExecutionContext {
   constructor(public readonly budget: BudgetController, public readonly tracer: Tracer) {}
 
   async call<T>(input: {
-    actor: AgentRole;
+    actor: TraceActor;
     tool: string;
     kind: "model" | "search" | "fetch" | "other";
     reason: string;

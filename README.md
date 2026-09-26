@@ -9,7 +9,7 @@ This repository now contains a working first vertical slice:
 - Manifest V3 Chrome extension with explicit Start/Stop.
 - Secure 30-second Deepgram JWT grant endpoint; long-lived Deepgram credentials stay server-side.
 - Streaming transcription with interim/final separation, `speech_final`, `UtteranceEnd`, a 1.5-second pause threshold, and one reconnect attempt.
-- Claim Extractor, Planner, Researcher, and Evidence Critic agents.
+- Three model-backed agents — Claim Extractor, Planner, and Evidence Critic — plus a deterministic research executor.
 - Deterministic claim-quality gate that removes predictions, low-checkability suggestions, unresolved locations/entities/timeframes, and overlapping duplicates.
 - Strict runtime validation for every agent output.
 - You.com `POST /v1/search` integration using query-relevant highlights.
@@ -31,7 +31,7 @@ active-tab audio
   -> Claim Extractor Agent
   -> user selects/confirms claim
   -> Planner Agent
-  -> Researcher Agent -> You.com / page retrieval
+  -> Research executor (deterministic) -> You.com / page retrieval
   -> shared evidence board
   -> Evidence Critic Agent
        -> ACCEPT/UNCLEAR -> final result
@@ -65,7 +65,7 @@ npm run dev
 
 `npm run dev` loads `.env` automatically on Node 24. Keep the PowerShell window open while using the extension.
 
-The checked-in `.env.example` deliberately distributes work by role: Gemini Flash performs batched claim-worthiness extraction, Mistral Medium plans, Mistral Small researches, and OpenAI `gpt-5.4-mini` is reserved for independent criticism. Before extraction, the extension combines short STT fragments into a rolling two-to-four-sentence window, waits for enough new speech, and enforces a four-second minimum interval. A failed extraction automatically routes to Mistral. OpenAI nano models are used only as planner/researcher fallbacks. If your account returns `model_not_found`, list the models available in that provider console and replace only the affected model ID.
+The checked-in `.env.example` deliberately distributes work by role: Gemini Flash performs batched claim-worthiness extraction, Mistral Medium plans (including the search query and source policy), and OpenAI `gpt-5.4-mini` is reserved for independent criticism. Research itself is deterministic and uses no model. Before extraction, the extension combines short STT fragments into a rolling two-to-four-sentence window, waits for enough new speech, and enforces a four-second minimum interval. A failed extraction automatically routes to Mistral. OpenAI nano models are used only as planner fallbacks. If your account returns `model_not_found`, list the models available in that provider console and replace only the affected model ID.
 
 The server starts at `http://127.0.0.1:8787` by default.
 

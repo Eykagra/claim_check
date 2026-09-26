@@ -26,7 +26,7 @@ const numberEnv = (name: string, fallback: number): number => {
   return parsed;
 };
 
-const route = (role: "CLAIM_EXTRACTOR" | "PLANNER" | "RESEARCHER" | "CRITIC", defaultProvider: ModelRoute["provider"]): ModelRoute => {
+const route = (role: "CLAIM_EXTRACTOR" | "PLANNER" | "CRITIC", defaultProvider: ModelRoute["provider"]): ModelRoute => {
   const provider = (process.env[`${role}_PROVIDER`] ?? defaultProvider) as ModelRoute["provider"];
   if (!["openai", "mistral", "gemini"].includes(provider)) throw new Error(`${role}_PROVIDER is invalid`);
   const model = process.env[`${role}_MODEL`] ?? "";
@@ -56,7 +56,6 @@ export function loadConfig(): AppConfig {
     routes: {
       claim_extractor: route("CLAIM_EXTRACTOR", "mistral"),
       planner: route("PLANNER", "openai"),
-      researcher: route("RESEARCHER", "mistral"),
       critic: route("CRITIC", "openai")
     },
     pricing: parsePricing(process.env.MODEL_PRICING_JSON),

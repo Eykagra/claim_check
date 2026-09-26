@@ -80,7 +80,7 @@ export class RunEngine {
         await tracer.emit({ actor: "planner", action: "task_delegated", reason: task.objective, status: "ok", budgetRemaining: budget.remaining(), details: { taskId: task.taskId, type: task.type, query: task.query, expectedEvidence: task.expectedEvidence, assignee: "researcher" } });
         await this.store.save(state);
 
-        const research = await this.researcher.run(context, state.claim, task);
+        const research = await this.researcher.run(context, task);
         if (research.evidence.length) {
           task.status = "completed";
           state.evidence.push(...research.evidence);
@@ -97,11 +97,24 @@ export class RunEngine {
         this.touch(state);
         await tracer.emit({ actor: "critic", action: "agent_started", reason: "Research is complete or degraded; independent review is required", status: "started", budgetRemaining: budget.remaining() });
         const criticResult = await this.critic.run(context, state);
+        let review: CriticReview;
         if (!criticResult.ok || !criticResult.data) {
-          this.recordFailure(state, "critic", "critique", criticResult.error?.kind ?? "upstream", criticResult.error?.message ?? "Critic failed", criticResult.error?.retryable ?? false);
-          return await this.finish(state, tracer, "UNCLEAR", 0, "Independent review failed, so no confident verdict was issued.", "unrecoverable_failure");
+          const message = criticResult.error?.message ?? "Critic failed";
+          this.recordFailure(state, "critic", "critique", criticResult.error?.kind ?? "upstream", message, criticResult.error?.retryable ?? false);
+          // A failed critic must not erase collected evidence. Degrade to a conservative,
+          // evidence-preserving review so the run reports what it actually found.
+          review = this.fallbackReview(state, message);
+          await tracer.emit({
+            actor: "runtime",
+            action: "critic_recovered",
+            reason: "Independent review failed, so the runtime issued a conservative UNCLEAR review that preserves the collected evidence.",
+            status: "ok",
+            budgetRemaining: budget.remaining(),
+            details: { failure: message, evidenceCount: state.evidence.length, confidence: review.confidence }
+          });
+        } else {
+          review = criticResult.data;
         }
-        const review = criticResult.data;
         state.criticReviews.push(review);
         previousReview = review;
         await tracer.emit({ actor: "critic", action: "review_completed", reason: review.reasoningSummary, status: "ok", budgetRemaining: budget.remaining(), details: { decision: review.decision, verdict: review.verdict, confidence: review.confidence, gaps: review.gaps } });
@@ -173,6 +186,22 @@ export class RunEngine {
         priority: 1,
         status: "pending"
       }]
+    };
+  }
+
+  private fallbackReview(state: RunState, failure: string): CriticReview {
+    const evidenceIds = state.evidence.map((item) => item.evidenceId);
+    return {
+      decision: "UNCLEAR",
+      verdict: "UNCLEAR",
+      confidence: evidenceIds.length ? 0.2 : 0,
+      reasoningSummary: evidenceIds.length
+        ? `Independent review could not be completed (${failure}), so no verdict is asserted. ${evidenceIds.length} source(s) were collected and are listed unreviewed for manual inspection.`
+        : `Independent review could not be completed (${failure}) and no evidence was collected, so no verdict is asserted.`,
+      acceptedEvidenceIds: evidenceIds,
+      rejectedEvidence: [],
+      gaps: ["Automated review failed before a verdict could be established; the listed sources have not been independently checked."],
+      recommendedNextTasks: []
     };
   }
 

@@ -12,7 +12,9 @@ PLAN -> DELEGATE -> RESEARCH -> CRITIQUE
 
 - Planner output is dynamic and claim-specific.
 - Only the highest-value task is delegated per plan version, preserving enough of the eight-call budget for one full critic-driven replan.
-- Researcher chooses a query and source policy, then calls You.com with highlight extraction. A direct HTTPS page fetch is used only when highlights are unavailable.
+- The planner emits the search query and source policy (`includeDomains`, `excludeDomains`, `maxResults`) with each task, so research is a deterministic executor rather than a fourth model-backed agent. It calls You.com with highlight extraction; a direct HTTPS page fetch is used only when highlights are unavailable. This removes one LLM round trip per research pass and one malformed-output failure mode.
+- Critic output is normalized before validation (`normalizeCriticDraft`): enum drift such as `INSUFFICIENT_EVIDENCE`, percentage confidences, nested `review` objects, and swapped decision/verdict fields are mapped onto the contract instead of failing the run.
+- If the critic still fails, the runtime issues a conservative `UNCLEAR` review that keeps the collected evidence attached to the report, rather than discarding the run's work.
 - Critic independently accepts, rejects, or returns `UNCLEAR`.
 - Runtime code—not an agent—owns retries, limits, persistence, and approvals.
 

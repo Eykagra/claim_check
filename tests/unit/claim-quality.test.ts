@@ -12,7 +12,7 @@ test("claim quality gate removes predictions and unresolved-context claims", asy
       { claimId: "future", exactQuote: "And we're going for a hundred.", normalizedClaim: "The speaker intends to achieve a 100% reduction in crime.", speaker: "0", startMs: 3100, endMs: 4000, checkability: 0.8, category: "other", reason: "Future target", needsUserConfirmation: false },
       { claimId: "vague", exactQuote: "Crime is down 87 percent.", normalizedClaim: "Crime decreased by 87% in the referenced location.", speaker: "0", startMs: 1000, endMs: 3000, checkability: 1, category: "statistic", reason: "Missing location", needsUserConfirmation: false }
     ] }],
-    planner: [], researcher: [], critic: []
+    planner: [], critic: []
   });
   const agent = new ClaimExtractorAgent(new StructuredModel(gateway));
   const result = await agent.extract([{ id: "s1", text: "When I arrived in Washington DC on January twentieth last year, it was riddled with crime and now crime is down 87 percent. And we're going for a hundred.", startMs: 0, endMs: 5000, confidence: 0.99, speaker: "0", isFinal: true }], { title: "Speech", url: "https://example.com", publishedAt: "2026-09-01" });

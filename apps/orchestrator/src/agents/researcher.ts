@@ -1,8 +1,5 @@
 import { URL } from "node:url";
-import type { Claim, EvidenceRecord, EvidenceTask, ResearchDecision, ToolResult } from "../../../../packages/contracts/src/index.js";
-import { validateResearchDecision } from "../../../../packages/contracts/src/index.js";
-import { RESEARCHER_SYSTEM_V1 } from "../../../../packages/prompts/src/index.js";
-import type { StructuredModel } from "../tools/structured-model.js";
+import type { EvidenceRecord, EvidenceTask, ToolResult } from "../../../../packages/contracts/src/index.js";
 import type { SearchTool } from "../tools/search.js";
 import type { PageFetcher } from "../tools/page-fetch.js";
 import { relevantExcerpt } from "../tools/page-fetch.js";
@@ -12,66 +9,37 @@ import { sha256 } from "../lib/hash.js";
 
 export interface ResearchOutput { evidence: EvidenceRecord[]; failure?: string }
 
+/**
+ * Deterministic evidence executor. The planner already resolves the query and source policy,
+ * so this stage spends no model call: it removes one LLM round trip per research pass and one
+ * failure mode (a malformed research decision) from every run.
+ */
 export class ResearcherAgent {
-  constructor(private readonly model: StructuredModel, private readonly search: SearchTool, private readonly pages: PageFetcher) {}
+  constructor(private readonly search: SearchTool, private readonly pages: PageFetcher) {}
 
-  async run(context: ExecutionContext, claim: Claim, task: EvidenceTask): Promise<ResearchOutput> {
-    const decision = await context.call({
-      actor: "researcher",
-      tool: "structured_llm",
-      kind: "model",
-      reason: `Choose a search strategy for ${task.type}`,
-      inputSummary: { claimId: claim.claimId, taskId: task.taskId, taskType: task.type, objective: task.objective },
-      summarizeOutput: (output) => ({ shouldSearch: output.shouldSearch, query: output.query, includeDomains: output.includeDomains }),
-      operation: () => this.model.generate("researcher", {
-        system: RESEARCHER_SYSTEM_V1,
-        user: JSON.stringify({ claim, task }),
-        temperature: 0.1,
-        maxTokens: 600
-      }, validateResearchDecision)
-    });
-    let strategy: ResearchDecision;
-    if (!decision.ok || !decision.data) {
-      strategy = {
-        shouldSearch: true,
-        rationale: "Use the planner's query because the researcher model returned invalid output",
-        query: task.query,
-        includeDomains: [],
-        excludeDomains: [],
-        maxResults: 3
-      };
-      await context.tracer.emit({
-        actor: "runtime",
-        action: "researcher_recovered",
-        reason: strategy.rationale,
-        status: "ok",
-        budgetRemaining: context.budget.remaining(),
-        details: { taskId: task.taskId, failure: decision.error?.message ?? "unknown", fallbackQuery: task.query }
-      });
-    } else {
-      strategy = decision.data;
-    }
-    if (!strategy.shouldSearch) return { evidence: [], failure: strategy.rationale };
+  async run(context: ExecutionContext, task: EvidenceTask): Promise<ResearchOutput> {
+    const query = task.query.trim();
+    if (!query) return { evidence: [], failure: "The plan did not supply a search query" };
+    const maxResults = Math.max(1, Math.min(5, Math.round(task.maxResults ?? 3)));
+    const includeDomains = task.includeDomains ?? [];
+    const excludeDomains = task.excludeDomains ?? [];
 
-    const searchResult = await this.callWithOneRetry(context, "you_search", "search", `Search for evidence: ${strategy.rationale}`, (attempt) => this.search.search(strategy.query, {
-      count: strategy.maxResults,
-      includeDomains: strategy.includeDomains,
-      excludeDomains: strategy.excludeDomains
-    }, attempt));
+    const searchResult = await this.callWithOneRetry(context, "you_search", "search", `Search for evidence: ${task.objective}`, (attempt) =>
+      this.search.search(query, { count: maxResults, includeDomains, excludeDomains }, attempt));
     if (!searchResult.ok || !searchResult.data) return { evidence: [], failure: searchResult.error?.message ?? "Search failed" };
 
     const evidence: EvidenceRecord[] = [];
-    for (const item of searchResult.data.items.slice(0, strategy.maxResults)) {
+    for (const item of searchResult.data.items.slice(0, maxResults)) {
       const highlights = item.highlights.filter((text) => text.trim().length >= 40).slice(0, 2);
       if (highlights.length) {
         const excerpt = highlights.join("\n\n");
-        evidence.push(this.record(task, strategy.query, item.url, item.title, item.pageAge, excerpt, "highlight"));
+        evidence.push(this.record(task, query, item.url, item.title, item.pageAge, excerpt, "highlight"));
         continue;
       }
       if (evidence.length > 0 || context.budget.remaining().toolCalls < 2) continue;
       const page = await this.callWithOneRetry(context, "page_fetch", "fetch", "Retrieve a full source because search returned no evidence highlights", (attempt) => this.pages.fetch(item.url, attempt));
       if (page.ok && page.data) {
-        evidence.push(this.record(task, strategy.query, page.data.canonicalUrl, page.data.title, page.data.publishedAt, relevantExcerpt(page.data.text, strategy.query), "full_page"));
+        evidence.push(this.record(task, query, page.data.canonicalUrl, page.data.title, page.data.publishedAt, relevantExcerpt(page.data.text, query), "full_page"));
       }
     }
     return evidence.length ? { evidence } : { evidence: [], failure: "No full-page or highlight evidence was retrievable" };
